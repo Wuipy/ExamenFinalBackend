@@ -1,8 +1,7 @@
-﻿using LibraryService.WebAPI.Data;
+using LibraryService.WebAPI.Data;
 using LibraryService.WebAPI.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,9 +25,24 @@ namespace LibraryService.WebAPI
             // Add support for Dependency Injection for internal services (BooksService and LibrariesService)
             services.AddTransient<ILibrariesService,  LibrariesService>();
             services.AddTransient<IBooksService,  BooksService>();
+            services.AddScoped<IFraudService, FraudService>();
 
-            services.AddDbContext<LibraryContext>(options => options.UseInMemoryDatabase("librarydb"));
+            services.AddDbContext<LibraryContext>(options =>
+            {
+                var connectionString = DatabaseConnection.Resolve(Configuration);
+                options.UseNpgsql(connectionString);
+            });
             services.AddControllers();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("FrontendCors", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
 
             // Add Swagger generation
             services.AddSwaggerGen(c =>
@@ -61,6 +75,8 @@ namespace LibraryService.WebAPI
             }
 
             app.UseRouting();
+
+            app.UseCors("FrontendCors");
 
             app.UseEndpoints(endpoints =>
             {
