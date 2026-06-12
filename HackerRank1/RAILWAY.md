@@ -16,9 +16,12 @@ Alternative: `DATABASE_URL` (postgresql://...) is also supported.
 
 ## Railway settings
 
-- **Branch:** `Wuipy`
+- **Branch:** `Wuipy` (NOT `main`)
 - **Root Directory:** `HackerRank1`
+- **Latest fixed commit:** `82c40b1` or newer
 - **Health check:** `/api/frauds`
+
+If build fails with duplicate Npgsql or missing JwtBearer, Railway is deploying an **old commit**. Redeploy from the latest `Wuipy` push.
 
 ## Frontend (Netlify)
 
