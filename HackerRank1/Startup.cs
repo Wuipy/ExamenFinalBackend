@@ -1,12 +1,9 @@
-using HackerRank1.Entities;
-using HackerRank1.Services;
 using LibraryService.WebAPI.Data;
 using LibraryService.WebAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,18 +70,24 @@ namespace LibraryService.WebAPI
             // Add support for Dependency Injection for internal services (BooksService and LibrariesService)
             services.AddTransient<ILibrariesService,  LibrariesService>();
             services.AddTransient<IBooksService,  BooksService>();
+            services.AddScoped<IFraudService, FraudService>();
 
-            services.AddDbContextPool<LibraryContext>(options =>
-                options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection"), npgsqlOptions =>
-                {
-                    npgsqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 1,
-                        maxRetryDelay: TimeSpan.FromSeconds(5),
-                        errorCodesToAdd: null);
-                }),
-                poolSize: 20);
-
+            services.AddDbContext<LibraryContext>(options =>
+            {
+                var connectionString = DatabaseConnection.Resolve(Configuration);
+                options.UseNpgsql(connectionString);
+            });
             services.AddControllers();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("FrontendCors", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
 
             // Add Swagger generation
             services.AddSwaggerGen(c =>
@@ -126,11 +129,7 @@ namespace LibraryService.WebAPI
 
             app.UseRouting();
 
-            app.UseCors("Frontend");
-
-            // Agregar los metodos de Auth al Middleware Pipeline.
-            app.UseAuthentication();
-            app.UseAuthorization();
+            app.UseCors("FrontendCors");
 
             app.UseEndpoints(endpoints =>
             {
