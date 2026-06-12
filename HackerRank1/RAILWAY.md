@@ -18,8 +18,14 @@ Alternative: `DATABASE_URL` (postgresql://...) is also supported.
 
 - **Branch:** `Wuipy` (NOT `main`)
 - **Root Directory:** `HackerRank1`
-- **Latest fixed commit:** `82c40b1` or newer
+- **.NET version:** 8.0 (see `global.json` and `nixpacks.toml`)
 - **Health check:** `/api/frauds`
+
+Optional variable if build still uses .NET 6 SDK:
+
+```
+NIXPACKS_DOTNET_SDK_VERSION=8.0
+```
 
 If build fails with duplicate Npgsql or missing JwtBearer, Railway is deploying an **old commit**. Redeploy from the latest `Wuipy` push.
 
