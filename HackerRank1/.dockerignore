@@ -1,0 +1,6 @@
+**/bin/
+**/obj/
+**/.tools/
+out-test/
+*.user
+.vs/

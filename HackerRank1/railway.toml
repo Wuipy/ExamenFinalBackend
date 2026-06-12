@@ -1,6 +1,6 @@
 [build]
-builder = "NIXPACKS"
-# Requires commit 82c40b1+ (single Npgsql + JwtBearer package)
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 healthcheckPath = "/api/frauds"

@@ -23,6 +23,12 @@ namespace LibraryService.WebAPI
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+
+                    var port = Environment.GetEnvironmentVariable("PORT");
+                    if (!string.IsNullOrWhiteSpace(port))
+                    {
+                        webBuilder.UseUrls($"http://0.0.0.0:{port}");
+                    }
                 });
     }
 }
