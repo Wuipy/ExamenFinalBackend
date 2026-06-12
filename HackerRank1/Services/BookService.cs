@@ -1,6 +1,3 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using LibraryService.WebAPI.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,8 +14,12 @@ namespace LibraryService.WebAPI.Services
 
         public async Task<IEnumerable<Book>> Get(int libraryId, int[] ids)
         {
-            // Complete the implementation
-            throw new NotImplementedException();
+            var query = _libraryContext.Books.AsQueryable().Where(b => b.LibraryId == libraryId);
+
+            if (ids != null && ids.Any())
+                query = query.Where(b => ids.Contains(b.Id));
+
+            return await query.ToListAsync();
         }
 
         public async Task<Book> Add(Book book)

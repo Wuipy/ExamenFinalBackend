@@ -1,8 +1,9 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using LibraryService.WebAPI.Data;
 using LibraryService.WebAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LibraryService.WebAPI.Controllers
 {
@@ -19,6 +20,12 @@ namespace LibraryService.WebAPI.Controllers
             _booksService = booksService;
         }
 
-        // Implement the functionalities below
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetAll(int libraryId)
+        {
+            var books = await _booksService.Get(libraryId, null);
+            return Ok(books);
+        }
     }
 }

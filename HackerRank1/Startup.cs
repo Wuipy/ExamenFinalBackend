@@ -1,12 +1,17 @@
+using HackerRank1.Entities;
+using HackerRank1.Services;
 using LibraryService.WebAPI.Data;
 using LibraryService.WebAPI.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 namespace LibraryService.WebAPI
 {
@@ -19,19 +24,42 @@ namespace LibraryService.WebAPI
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Add support for Dependency Injection for internal services (BooksService and LibrariesService)
-            services.AddTransient<ILibrariesService,  LibrariesService>();
-            services.AddTransient<IBooksService,  BooksService>();
+            var jwtSettings = Configuration.GetSection("JwtSettings").Get<JwtSettings>()
+                ?? throw new InvalidOperationException("JwtSettings is not configured.");
+
+            services.AddSingleton(jwtSettings);
+            services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                        ValidateIssuer = true,
+                        ValidIssuer = jwtSettings.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = jwtSettings.Audience,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.Zero,
+                    };
+                });
+
+            services.AddAuthorization();
+
+            services.AddTransient<ILibrariesService, LibrariesService>();
+            services.AddTransient<IBooksService, BooksService>();
             services.AddScoped<IFraudService, FraudService>();
 
             services.AddDbContext<LibraryContext>(options =>
             {
-                var connectionString = DatabaseConnection.Resolve(Configuration);
-                options.UseNpgsql(connectionString);
+                options.UseNpgsql(DatabaseConnection.Resolve(Configuration));
             });
+
             services.AddControllers();
 
             services.AddCors(options =>
@@ -44,25 +72,22 @@ namespace LibraryService.WebAPI
                 });
             });
 
-            // Add Swagger generation
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Title = "LibraryService API",
                     Version = "v1",
-                    Description = "A simple example ASP.NET Core Web API for LibraryService"
+                    Description = "Library and fraud reporting API",
                 });
             });
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             using (var scope = app.ApplicationServices.CreateScope())
             {
-                var context = scope.ServiceProvider.GetRequiredService<LibraryContext>();
-                context.Database.Migrate();
+                scope.ServiceProvider.GetRequiredService<LibraryContext>().Database.Migrate();
             }
 
             if (env.IsDevelopment())
@@ -77,8 +102,9 @@ namespace LibraryService.WebAPI
             });
 
             app.UseRouting();
-
             app.UseCors("FrontendCors");
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
